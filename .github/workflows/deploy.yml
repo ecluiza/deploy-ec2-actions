@@ -1,0 +1,32 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]  # Só ativa quando você fizer push na branch "main"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Roda em um servidor temporário do GitHub
+
+    steps:
+      # Passo 1: Pega o código do repositório
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Passo 2: Configura a chave SSH para acessar sua EC2
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Chave que você vai configurar depois
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+      # Passo 3: Conecta na EC2 e atualiza o código
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no deploy@${{ secrets.EC2_HOST }} <<EOF
+            cd /var/www/html/example-app
+            git pull origin main    # Puxa as atualizações do GitHub
+            # Se for Laravel, descomente as linhas abaixo:
+            # composer install --no-dev
+            # php artisan migrate --force
+          EOF
